@@ -70,15 +70,15 @@ Qwak real time models deploy your ML models with a lightweight, simple and scala
 
 #### Parameters
 
-| Parameter            | Type    | Default Value | Description                                                                                     | Example     |
-|----------------------|---------|---------------|-------------------------------------------------------------------------------------------------|-------------|
-| `timeout`            | INT     |               | Inference request timeout in MS.                                                                 | `2000`      |
-| `server-workers`     | INT     |               | Number of workers running the HTTP server.                                                       | `4`         |
-| `daemon-mode`        | BOOLEAN | `true`        | Configure Gunicorn daemon mode.                                                                  |             |
-| `max-batch-size`     | INT     | `0`           | Max batch size in prediction. A value of 0 means it's dynamic.                                  |             |
-| `variation-name`     | TEXT  | `default`     | The model variation name.                                                                        |             |
-| `deployment-timeout` | INT     | `1800`        | The number of seconds the deployments can be in progress before it is considered as failed.      | `1800`      |
-| `protected`          | BOOLEAN | `false`       | Whether the deployment variation is protected.                                                   |             |
+| Parameter            | Type    | Default Value | Description                                                                                     |
+|----------------------|---------|---------------|-------------------------------------------------------------------------------------------------|
+| `timeout`            | INT     |               | Inference request timeout in MS.                                                                 |
+| `server-workers`     | INT     |               | Number of workers running the HTTP server.                                                       |
+| `daemon-mode`        | BOOLEAN | `true`        | Configure Gunicorn daemon mode.                                                                  |
+| `max-batch-size`     | INT     | `0`           | Max batch size in prediction. A value of 0 means it's dynamic.                                  |
+| `variation-name`     | TEXT  | `default`     | The model variation name.                                                                        |
+| `deployment-timeout` | INT     | `1800`        | The number of seconds the deployments can be in progress before it is considered as failed.      |
+| `protected`          | BOOLEAN | `false`       | Whether the deployment variation is protected.                                                   |
 
 
 

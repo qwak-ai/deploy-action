@@ -1,11 +1,15 @@
 # action.yml
 name: 'Deploy Qwak Build'
-description: 'Deploys a successful ML model build in Qwak Cloud. Requires QWAK_API_KEY secret to be set at the repository level!'
+description: 'Deploys a successful ML model build in Qwak Cloud.'
 branding:
   icon: 'award'
   color: 'green'
 
 inputs:
+  qwak-api-key:
+    description: Your Qwak Service API Key. Please store it as a repository secret and just reference it here.
+    required: true
+
   sdk-version:
     description: 'The Qwak-SDK version required to trigger this deploy. [Default: latest]'
     required: false
@@ -85,13 +89,8 @@ runs:
     - name: Configure qwak-sdk
       shell: bash
       env:
-        QWAK_API_KEY: ${{ secrets.QWAK_API_KEY }}
-      run: |
-        if [[ -z "$QWAK_API_KEY" ]]; then
-          echo "Error: QWAK_API_KEY secret is not set. Please set it as a Repository Secret."
-          exit 1
-        fi
-        qwak configure --api-key $QWAK_API_KEY
+        QWAK_API_KEY: ${{ inputs.qwak-api-key }}
+      run: 'qwak configure --api-key $QWAK_API_KEY'
 
     - name: Deploy Model Build
       shell: bash
@@ -106,4 +105,4 @@ runs:
         IAM_ROLE_ARN: ${{ inputs.iam-role-arn }}
         ENVIRONMENT: ${{ inputs.environment }}
         TIMEOUT_AFTER: ${{ inputs.timeout-after }}
-      run: python3 register_deploy.py
+      run: python3 ${{ github.action_path }}/register_deploy.py
