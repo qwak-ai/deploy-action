@@ -1,0 +1,109 @@
+# action.yml
+name: 'Deploy Qwak Build'
+description: 'Deploys a successful ML model build in Qwak Cloud. Requires QWAK_API_KEY secret to be set at the repository level!'
+branding:
+  icon: 'award'
+  color: 'green'
+
+inputs:
+  sdk-version:
+    description: 'The Qwak-SDK version required to trigger this deploy. [Default: latest]'
+    required: false
+
+  deploy-type:
+    description: Deployment types supported `realtime`/`stream`/`batch`.
+    required: true
+
+  model-id:
+    description: 'Model ID'
+    required: true
+
+  build-id:
+    description: The Build ID to be deployed. If not specified, the latest successful build will be deployed.
+    required: false
+
+  param-list:
+    description: |
+      'A list of key-value pairs representing deployment parameters, specified in the format NAME=VALUE, separated by comma. 
+      These parameters are used to cusotomize the deployment based on its type. For a complete list of available parameters 
+      for each deployment type, refer to the README.md file of this custom GitHub Action.'
+    required: false
+
+  env-vars:
+    description: |
+      'Environment variables for the build, specified in the format NAME=VALUE, separated by comma.
+      These variables can be used to set or override environment settings within the build process.
+      For example, you can define paths, system configurations, or other environment-specific details.''
+    required: false
+
+  instance:
+    description: 'The instance type to train and build the model on. The instance defines the allocated CPU or GPU compute resources as well as memory.'
+    required: false
+    default: 'small'
+
+  replicas:
+    description: 'The number of selected instances to provision for this deployment. [Default: 1]'
+    required: false
+    default: 1
+
+  iam-role-arn:
+    description: 'Custom IAM Role ARN Qwak should assume in order to access external resources in the build process.'
+    required: false
+
+  environment:
+    description: 'The Qwak environment to use. For example, "dev", "staging", or "production". If not specified, the default environment will be used.'
+    required: false
+
+  timeout-after:
+    description: 'How many minutes to wait for the build before timing out. [Default: 30]'
+    required: false
+    default: 30
+  
+outputs:
+  deploy-id:
+    description: 'The ID of the deployment.'
+  deploy-status:
+    description: 'The status of the deployment once it finished execution or times out.'
+
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9.12'
+
+    - name: Install qwak-sdk
+      shell: bash
+      run: |
+        if [[ -z "${{ inputs.sdk-version }}" ]]; then
+          pip3 install qwak-sdk
+        else
+          pip3 install qwak-sdk==${{ inputs.sdk-version }} || { echo "Error: Invalid or not found Qwak-SDK version: ${{ inputs.sdk-version }}"; exit 1; }
+        fi
+
+    - name: Configure qwak-sdk
+      shell: bash
+      env:
+        QWAK_API_KEY: ${{ secrets.QWAK_API_KEY }}
+      run: |
+        if [[ -z "$QWAK_API_KEY" ]]; then
+          echo "Error: QWAK_API_KEY secret is not set. Please set it as a Repository Secret."
+          exit 1
+        fi
+        qwak configure --api-key $QWAK_API_KEY
+
+    - name: Deploy Model Build
+      shell: bash
+      env:
+        MODEL_ID: ${{ inputs.model-id }}
+        BUILD_ID: ${{ inputs.build-id }}
+        DEPLOY_TYPE: ${{ inputs.deploy-type }}
+        PARAM_LIST: ${{ inputs.param-list }}
+        ENV_VARS: ${{ inputs.env-vars }}
+        INSTANCE: ${{ inputs.instance }}
+        REPLICAS: ${{ inputs.replicas }}
+        IAM_ROLE_ARN: ${{ inputs.iam-role-arn }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        TIMEOUT_AFTER: ${{ inputs.timeout-after }}
+      run: python3 register_deploy.py
