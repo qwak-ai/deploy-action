@@ -1,4 +1,4 @@
-# Qwak Model `DEPLOY` Action
+# Qwak Model `DEPLOY` Action (v1)
 
 This GitHub Action triggers a Qwak Cloud Deployment for a machine learning model Build. It provides a seamless integration with Qwak's platform, allowing you to deploy and monitor your models directly from your GitHub repository.
 
@@ -28,16 +28,14 @@ This GitHub Action triggers a Qwak Cloud Deployment for a machine learning model
 
 <br>
 
-## Requirements
-
-- A [Qwak API key](https://app.qwak.ai/qwak-admin#personal-api-keys) must be set up as a repository secret named `QWAK_API_KEY`.
-
 ## Inputs
 
+- `qwak-api-key`: A [Qwak API key](https://app.qwak.ai/qwak-admin#personal-api-keys). Recommended to be set up as a repository secret.
 - `sdk-version`: Specifies the Qwak-SDK version required to trigger this deploy. Default is `latest`.
 - `deploy-type`: **(Required)** Type of deployment. Supported types are `realtime`, `stream`, and `batch`.
 - `model-id`: **(Required)** The ID of the model to be deployed.
 - `build-id`: The Build ID to be deployed. If not specified, the latest successful build will be deployed.
+- `tags`: One or more TAGS separated by comma. If `build-id` is specified, `tags` will be ignored, otherwise the action will look for the latest successful build with the tags mentioned.
 - `param-list`: A list of key-value pairs representing deployment parameters. These are specified in the format `NAME=VALUE` and separated by commas. For a complete list of available parameters for each deployment type, refer to [Deployment Types](#deployment-types).
 - `env-vars`: Environment variables for the deployment, specified in the format `NAME=VALUE` and separated by commas. These can be used to set or override environment settings within the deployment process.
 - `instance`: Specifies the hardware type to deploy the model on. The instance defines the allocated CPU/GPU and Memory resources. [Instances list.](https://docs-saas.qwak.com/docs/instance-sizes) Default is `small`.
@@ -132,7 +130,9 @@ This deployment type allows you to run batch inference executions in the system,
 - name: Build Qwak Model
   uses: qwak-ai/deploy-action@v1
   with:
+    qwak-api-key: <your qwak key>
     model-id: <your-model-id>
+    tags: ${{ github.head_ref }}                # Deploy the latest successful build with this branch as TAG
     deploy-type: realtime
     param-list: 'timeout=3000,server-workers=4'
 ```
@@ -143,7 +143,8 @@ This deployment type allows you to run batch inference executions in the system,
 - name: Build Qwak Model with GPU
   uses: qwak-ai/deploy-action@v1
   with:
-    model-id: <your-model-id>
+    qwak-api-key: <your qwak key>
+    model-id: <your-model-id>                   # Deploy the latest successful build for this Model
     instance: 'gpu.t4.xl'
     deploy-type: batch
 ```
@@ -153,11 +154,27 @@ This deployment type allows you to run batch inference executions in the system,
 
 ```yaml
 - name: Build Qwak Model with Timeout
-  uses: qwak-ai/build-action@v1   
+  uses: qwak-ai/deploy-action@v1   
   with:
+    qwak-api-key: <your qwak key>
     model-id: 'your-model-id'
-    timeout-after: 60
+    deploy-type: realtime
+    param-list: 'timeout=6000'                # Prediction REST endpoint timeout after 6s
 ```
+
+
+### Example with Shadow Variation 
+
+```yaml
+- name: Build Qwak Model with Timeout
+  uses: qwak-ai/deploy-action@v1   
+  with:
+    qwak-api-key: <your qwak key>
+    model-id: 'your-model-id'
+    deploy-type: realtime
+    param-list: 'variation-name=shadow,from-file=config.yaml'                # config.yaml should be in the runner's current directory
+```
+
 
 ### Trigger a Streaming Deployment when after a successful model Build
 
@@ -166,21 +183,31 @@ This deployment type allows you to run batch inference executions in the system,
 name: Deploy ML Model after successful Build
 
 on:
-  workflow_run:
-    workflows: ["Build ML Model on Pull Request"]  # Name of the build workflow
-    types:
-      - completed
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+        - 'main'
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  build:
+    outputs:
+      build_id: </...>
+      build_status: </...>
+
     steps:
-    - name: Deploy Qwak Model
+      </...>
+
+  deploy:
+    if: needs.build.outputs.build_status == 'SUCCESSFUL' 
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+
+    - name: Deploy Qwak Build
       uses: qwak-ai/deploy-action@v1
       with:
         model-id: <your-model-id>
-        build-id: <your-build-id>
+        build-id: ${{ needs.build.outputs.build_id }}
         deploy-type: stream
         sdk-version: '0.5.18'
         instance: 'medium'
