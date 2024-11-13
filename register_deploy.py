@@ -1,6 +1,13 @@
-from qwak import QwakClient
-from qwak.qwak_client.builds.build import BuildStatus
+try:
+    # imports for the new SDK if 0.5.X is installed
+    from qwak.qwak_client.builds.build import BuildStatus
 
+except ImportError:
+
+    # imports for the old SDK if 0.9.X is installed
+    from qwak.builds.build import BuildStatus
+
+from qwak import QwakClient
 import subprocess
 import re
 import os
@@ -43,7 +50,11 @@ def deploy_command():
     # Deployment Type
     deploy_type = os.getenv('DEPLOY_TYPE')
     if deploy_type:
-        command.append(deploy_type)
+        if deploy_type in ['realtime', 'batch', 'stream']:
+            command.append(deploy_type)
+        else:
+            print(f"Deployment type {deploy_type} is invalid. Please use realtime, batch or stream.")
+            exit(1)
 
     # Model ID
     model_id = os.getenv('MODEL_ID')
@@ -122,7 +133,7 @@ def deploy_command():
 
     # Timeout After
     timeout_after = os.getenv('TIMEOUT_AFTER')
-    if timeout_after:
+    if deploy_type == "realtime" and timeout_after:
         command.extend(["--timeout", timeout_after])
 
     return " ".join(command)
@@ -178,7 +189,7 @@ def wait_for_deployment(deployment_id: str, timeout: int) -> str:
 
 if __name__ == '__main__':
 
-    timeout_for_failing = int(os.getenv('INPUT_TIMEOUT_AFTER', 30)) # Default 30 minutes
+    timeout_for_failing = int(os.getenv('TIMEOUT_AFTER', 30)) # Default 30 minutes
  
     qwak_deploy_model_command = deploy_command()
     print(f"Printing the Qwak CLI command for debug purposes:\n{qwak_deploy_model_command}\n")
