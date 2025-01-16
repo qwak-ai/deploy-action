@@ -1,12 +1,4 @@
-try:
-    # imports for the new SDK if 0.5.X is installed
-    from qwak.qwak_client.builds.build import BuildStatus
-
-except ImportError:
-
-    # imports for the old SDK if 0.9.X is installed
-    from qwak.builds.build import BuildStatus
-
+from qwak.qwak_client.builds.build import BuildStatus
 from qwak import QwakClient
 import subprocess
 import re
